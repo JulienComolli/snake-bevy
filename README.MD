@@ -8,7 +8,7 @@ Very very minimal example of a snake game made with bevy.
 
 ## Keys 
 
-- **Keboard arrows** : change direction ;
+- **Keyboard arrows** : change direction ;
 - **Escape** : quit ;
 
 ## Compile and run
