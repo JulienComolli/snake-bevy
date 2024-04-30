@@ -1,5 +1,5 @@
 [package]
-name = "techno-snake-bevy"
+name = "snake-bevy"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,4 +8,3 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.13.0", features = ["dynamic_linking"] }
 rand = "0.8.5"
-
