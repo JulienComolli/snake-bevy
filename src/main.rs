@@ -1,5 +1,5 @@
-use bevy::{prelude::*, time::common_conditions::on_timer};
-use std::{process::exit, time::Duration};
+use bevy::{prelude::*, time::Stopwatch};
+use std::process::exit;
 
 use rand::Rng;
 
@@ -13,7 +13,8 @@ const AREA_WIDTH: i32 = 53;
 
 const SEGMENT_SIZE: i32 = 20;
 
-const STEP: u64 = 100; // In Ms
+const DEFAULT_STEP: u128 = 80; // In Ms
+const MIN_STEP: u128 = 32;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 enum EnumDirection {
@@ -51,6 +52,9 @@ struct Tile;
 struct GameState {
     just_ate: bool,
     must_grow: bool,
+    last_move: Stopwatch,
+    step: u128,
+    length: u32,
 }
 
 fn main() {
@@ -74,6 +78,9 @@ fn main() {
         .insert_resource(GameState {
             just_ate: false,
             must_grow: false,
+            last_move: Stopwatch::new(),
+            step: DEFAULT_STEP,
+            length: 1,
         })
         .add_systems(Startup, setup)
         .add_systems(Update, change_direction)
@@ -82,7 +89,7 @@ fn main() {
         .add_systems(
             Update,
             (
-                move_snake.run_if(on_timer(Duration::from_millis(STEP))),
+                move_snake, //.run_if(on_timer(Duration::from_millis(STEP))),
                 draw_snake,
             )
                 .chain(), // Chaining need to avoid the body part from spawning
@@ -182,7 +189,17 @@ fn move_snake(
     mut query_bodies: Query<&mut Position, (With<SnakeBody>, Without<SnakeHead>)>,
     commands: Commands,
     mut game_state: ResMut<GameState>,
+    time: Res<Time>,
 ) {
+    game_state.last_move.tick(time.delta());
+    println!("{}", game_state.last_move.elapsed().as_millis());
+
+    if game_state.last_move.elapsed().as_millis() > game_state.step {
+        game_state.last_move.reset();
+    } else {
+        return;
+    }
+
     let mut snake_head = query.single_mut();
 
     let mut previous_position = Position {
@@ -190,7 +207,7 @@ fn move_snake(
         y: snake_head.0.y,
     };
 
-    snake_head.1.0 = snake_head.2.0;
+    snake_head.1 .0 = snake_head.2 .0;
 
     if EnumDirection::UP == snake_head.1 .0 {
         snake_head.0.y += 1;
@@ -275,6 +292,10 @@ fn check_eat(
         if pos.x == head.x && pos.y == head.y {
             game_state.just_ate = true;
             game_state.must_grow = true;
+            game_state.length = game_state.length + 1;
+            if game_state.step > MIN_STEP {
+                game_state.step -= 2;
+            }
             commands.entity(food).despawn();
         }
     }
