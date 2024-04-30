@@ -309,7 +309,7 @@ fn check_death(
 
     for body_part in query_bodies.iter() {
         if body_part.x == head.x && body_part.y == head.y {
-            exit(1);
+            exit(0);
         }
     }
 }
