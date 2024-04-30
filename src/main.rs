@@ -15,7 +15,7 @@ const SEGMENT_SIZE: i32 = 20;
 
 const STEP: u64 = 100; // In Ms
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 enum EnumDirection {
     UP = 0,
     DOWN = 1,
@@ -40,6 +40,9 @@ struct Position {
 
 #[derive(Component)]
 struct Direction(EnumDirection);
+
+#[derive(Component)]
+struct NextDirection(EnumDirection);
 
 #[derive(Component)]
 struct Tile;
@@ -105,6 +108,7 @@ fn setup(mut commands: Commands) {
         },
         SnakeHead,
         Direction(EnumDirection::UP),
+        NextDirection(EnumDirection::UP),
         Position { x: 0, y: 0 },
     ));
 
@@ -148,21 +152,23 @@ fn spawn_body_part(mut commands: Commands, xpos: i32, ypos: i32) {
 
 fn change_direction(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query: Query<&mut Direction, With<SnakeHead>>,
+    query_direction: Query<&Direction, With<SnakeHead>>,
+    mut query_next_direction: Query<&mut NextDirection, With<SnakeHead>>,
 ) {
-    let mut dir = query.single_mut();
+    let dir = query_direction.single();
+    let mut next_dir = query_next_direction.single_mut();
 
     if dir.0 != EnumDirection::DOWN && keyboard_input.just_pressed(KeyCode::ArrowUp) {
-        dir.0 = EnumDirection::UP;
+        next_dir.0 = EnumDirection::UP;
     }
     if dir.0 != EnumDirection::UP && keyboard_input.just_pressed(KeyCode::ArrowDown) {
-        dir.0 = EnumDirection::DOWN;
+        next_dir.0 = EnumDirection::DOWN;
     }
     if dir.0 != EnumDirection::RIGHT && keyboard_input.just_pressed(KeyCode::ArrowLeft) {
-        dir.0 = EnumDirection::LEFT;
+        next_dir.0 = EnumDirection::LEFT;
     }
     if dir.0 != EnumDirection::LEFT && keyboard_input.just_pressed(KeyCode::ArrowRight) {
-        dir.0 = EnumDirection::RIGHT;
+        next_dir.0 = EnumDirection::RIGHT;
     }
 
     // TODO: migrate this in another function
@@ -172,7 +178,7 @@ fn change_direction(
 }
 
 fn move_snake(
-    mut query: Query<(&mut Position, &Direction), With<SnakeHead>>,
+    mut query: Query<(&mut Position, &mut Direction, &NextDirection), With<SnakeHead>>,
     mut query_bodies: Query<&mut Position, (With<SnakeBody>, Without<SnakeHead>)>,
     commands: Commands,
     mut game_state: ResMut<GameState>,
@@ -183,6 +189,8 @@ fn move_snake(
         x: snake_head.0.x,
         y: snake_head.0.y,
     };
+
+    snake_head.1.0 = snake_head.2.0;
 
     if EnumDirection::UP == snake_head.1 .0 {
         snake_head.0.y += 1;
